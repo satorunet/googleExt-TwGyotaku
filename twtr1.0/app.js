@@ -63,7 +63,7 @@ function complete_gyotaku(url,res,gyotaking){
 
 	console.log("complete:" + url);
 
-	let img = dataurl2blob(res.data);
+	let img = dataurl2blob(res.bin);
 	let m = url.match(/([^\/]+)\/status\/([^\/]+)/);
 
 	let ymd = tweet2ymd(m[2]);
@@ -72,7 +72,7 @@ function complete_gyotaku(url,res,gyotaking){
 
 	let fin = $("<div style='text-align:center;padding:5px'>" + 
 		'<div style="float:right"><a style="color: rgb(27, 149, 224)" class=close_gyotaku href=#>閉じる</a></div>' + 	
-		"<div align=left>🐟💦完成！</div>"+
+		"<div style='float:left'>🐟💦完成！</div>"+
 		'<div style="font-size:10pt">' +
 		'<span class=m><a class=download download='+filename+' style="color: rgb(27, 149, 224);" href='+img+'>' + 
 		'<svg version="1.1" id="_x32_" x="0px" y="0px" viewBox="0 0 512 512" style="width: 16px; height: 16px; opacity: 1;" xml:space="preserve"> <style type="text/css">.st0{fill:#4B4B4B;}</style> <g> <path class="st0" d="M230.546,324.601c6.688,6.703,15.969,10.547,25.454,10.547c9.469,0,18.75-3.844,25.453-10.547L398.422,207.64  c14.062-14.054,14.062-36.851,0-50.906c-14.062-14.062-36.859-14.062-50.906,0v-0.007L292,212.242V38.188c0-19.883-16.125-36-36-36  c-19.89,0-36,16.117-36,36v174.046l-55.5-55.5c-14.062-14.062-36.859-14.062-50.906-0.007c-14.062,14.062-14.062,36.859,0,50.914  L230.546,324.601z" style="fill: rgb(75, 75, 75);"></path> <path class="st0" d="M473.453,383.148H333.406c-13.36,29.469-42.954,50-77.406,50c-34.454,0-64.047-20.531-77.39-50H38.562  C17.266,383.148,0,400.406,0,421.696v49.562c0,21.297,17.266,38.554,38.562,38.554h434.89c21.297,0,38.547-17.258,38.547-38.554  v-49.562C512,400.406,494.75,383.148,473.453,383.148z" style="fill: rgb(75, 75, 75);"></path> </g> </svg>ダウンロード</a></span>' + 
@@ -80,18 +80,18 @@ function complete_gyotaku(url,res,gyotaking){
 	'  <span class=m><a target=_blank style="color: rgb(27, 149, 224)" href=https://twtr.satoru.net/list/ target=blank>📝履歴</a></span>' + 
 
 	' </div>' + 
-		"<a class=im href="+img+"><img style='width: 250px;height: 100px;object-position: 0% 100%;object-fit: cover;' width=50% src=" + img + "></a>" + 
+		"<a class=im href="+img+"><img style='width: 150px;height: 50px;object-position: 0% 100%;object-fit: cover;' width=50% src=" + img + "></a>" + 
 		"</div>");
 
-	let setStorage = $("<iframe width=1 height=1 src='https://twtr.satoru.net/google/set_storage.v1.cgi?url="+url+"'></iframe>");
-	setStorage.css({"z-index":-1,"position":"absolute"});
+	let storageDIV = $("<iframe width=1 height=1 src='https://twtr.satoru.net/google/set_storage.v1.cgi?url="+url+"'></iframe>");
+	storageDIV.css({"z-index":-1,"position":"absolute"});
 
 	$(fin).hide();
 	$(fin).append(setStorage);
 	$(fin).fadeIn("slow");
 
 	setTimeout(function(){
-		setStorage.remove();
+		storageDIV.remove();
 	},5000);
 
 
@@ -121,7 +121,7 @@ function press_gyotaku(url,article){
 	}
 
 
-	let gyotaking = $("<div class=gyotaking style='border-radius:0 0 10px 10px;background:rgb(230, 236, 240)'>" + 
+	let gyotaking = $("<div class=gyotaking style='height:80px;border-radius:0 0 10px 10px;background:rgb(230, 236, 240)'>" + 
 		"<div class=loading><marquee>🐟💨</marquee>" + 
 		"<div align=center>魚拓中..<timer>00:00</timer>" + 
 		"</div></div>"
@@ -139,22 +139,37 @@ function press_gyotaku(url,article){
 	let timer = setInterval(function(gyotaking){
 		n = n+1;
 		$(gyotaking).find("timer").text(toZero(parseInt(n/60)) + ":" + toZero(parseInt(n%60)));
-
-		if(is_check){
-			check_url(url,function(res){
-				if(res && res.status == "done"){
-					if(!is_done){
-						clearInterval(timer);
-						complete_gyotaku(url,res,gyotaking);
-						is_done = 1;
-					}
-				} else {
-					;
-				}
-			});
-		}
-
 	},1000,gyotaking)
+
+	$(function(){
+		const socket = io.connect("https://twtr.satoru.net:8443",{query:{"url":url}});
+		socket.on('connect',function(res){
+			socket.on("done",function(res){
+				clearInterval(timer);
+				complete_gyotaku(url,res,gyotaking);
+				is_done = 1;
+			})
+		});
+	})
+
+/*
+
+				$("status").append("<div>撮影完了！</div>");
+				var time = parseInt(new Date().getTime()/1000);
+				if(
+					getCookie("auto_dl") == 1 && 
+					!window.navigator.userAgent.match(/iphone|android/i)
+				){
+					let link = document.createElement('a');
+					link.href = dataurl2blob(res.bin);
+					link.download = twurl2filename(TW_URL);
+					link.click();
+					link.remove();
+				}
+					location.href = "?mode=finish&url="+TW_URL;
+
+*/
+
 
 	submit_url(url,function(){
 		is_check = 1;
@@ -174,15 +189,6 @@ function submit_url(url,callback){
 	});
 }
 
-function check_url(url,callback){
-	$.ajax({
-		url : "https://twtr.satoru.net/google/gyotaku.v1.pl",
-		data : {"url":url},
-		success: function(res){
-			callback(res);
-		}
-	});
-}
 
 function dataurl2blob(dataurl){
 	let bin = atob(dataurl.split(',')[1]);
